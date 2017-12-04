@@ -49,8 +49,22 @@ namespace FluentMigrator.Runner.Processors.SQLite
 
         public override bool ColumnExists(string schemaName, string tableName, string columnName)
         {
+#if !NETSTANDARD2_0
             var dataSet = Read("PRAGMA table_info([{0}])", tableName);
             return dataSet.Tables.Count > 0 && dataSet.Tables[0].Select(string.Format("Name='{0}'", columnName.Replace("'", "''"))).Length > 0;
+#else
+            using (var command = Factory.CreateCommand(String.Format("PRAGMA table_info([{0}])", tableName), Connection))
+            using (var reader = command.ExecuteReader())
+            {
+                var namePos = reader.GetOrdinal("name");
+                while (reader.Read())
+                {
+                    if (String.Compare(reader.GetString(namePos), columnName, StringComparison.OrdinalIgnoreCase) == 0)
+                        return true;
+                }
+                return false;
+            }
+#endif
         }
 
         public override bool ConstraintExists(string schemaName, string tableName, string constraintName)
@@ -193,10 +207,20 @@ namespace FluentMigrator.Runner.Processors.SQLite
             var ds = new DataSet();
             using (var command = Factory.CreateCommand(String.Format(template, args), Connection))
             {
+#if !NETSTANDARD2_0
                 var adapter = Factory.CreateDataAdapter(command);
+#else
+                var adapter = new SqLiteDataAdapter();
+                adapter.SelectCommand = (DbCommand) command;
+#endif
                 adapter.Fill(ds);
+
                 return ds;
             }
         }
+    }
+
+    class SqLiteDataAdapter : DbDataAdapter
+    {
     }
 }

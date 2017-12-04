@@ -54,7 +54,9 @@ namespace FluentMigrator.Console
         public bool TransactionPerSession;
         public string ProviderSwitches;
 
-        public RunnerContext RunnerContext { get; private set;}
+#pragma warning disable CS3003 // Type is not CLS-compliant
+        public RunnerContext RunnerContext { get; private set; }
+#pragma warning restore CS3003 // Type is not CLS-compliant
 
         public MigratorConsole(params string[] args)
         {
